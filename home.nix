@@ -1,5 +1,17 @@
 { osConfig, pkgs, ... }:
 
+let
+  mkClaudeWrapper = name: pkgs.writeShellScriptBin "claude-${name}" ''
+    export CLAUDE_HOME="$HOME/claude-${name}-home"
+    export CLAUDE_CONFIG_DIR="$CLAUDE_HOME/.claude"
+    export CLAUDE_CODE_TMPDIR="/tmp/claude-${name}"
+
+    mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
+
+    exec claude code "$@"
+  '';
+in
+
 {
   home.stateVersion = "25.11";
 
@@ -45,25 +57,5 @@
     claude = "echo 'Use claude-work or claude-personal'";
   };
 
-  home.packages = [
-    (pkgs.writeShellScriptBin "claude-work" ''
-      export CLAUDE_HOME="$HOME/claude-work-home"
-      export CLAUDE_CONFIG_DIR="$CLAUDE_HOME/.claude"
-      export CLAUDE_CODE_TMPDIR="/tmp/claude-work"
-
-      mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
-
-      exec claude code "$@"
-    '')
-
-    (pkgs.writeShellScriptBin "claude-personal" ''
-      export CLAUDE_HOME="$HOME/claude-personal-home"
-      export CLAUDE_CONFIG_DIR="$CLAUDE_HOME/.claude"
-      export CLAUDE_CODE_TMPDIR="/tmp/claude-personal"
-
-      mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
-
-      exec claude code "$@"
-    '')
-  ];
+  home.packages = map mkClaudeWrapper [ "work" "personal" ];
 }
