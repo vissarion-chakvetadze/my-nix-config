@@ -1,0 +1,8 @@
+{ ... }: {
+  myProfile = {
+    username = "youruser";
+    fullName = "Your Name";
+    email = "you@example.com";
+    timezone = "Europe/London";
+  };
+}
