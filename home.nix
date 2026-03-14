@@ -53,7 +53,7 @@
 
       mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
 
-      exec claude code
+      exec claude code "$@"
     '')
 
     (pkgs.writeShellScriptBin "claude-personal" ''
@@ -63,7 +63,7 @@
 
       mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
 
-      exec claude code
+      exec claude code "$@"
     '')
   ];
 }

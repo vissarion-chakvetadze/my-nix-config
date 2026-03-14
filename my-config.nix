@@ -106,6 +106,10 @@ in
     protonvpn-gui
     git
     claude-code
+    logseq
+    (unstable.ollama.override {
+      acceleration = "cuda";
+    })
   ]) ++
   ([
     #gemini-cli_026
@@ -176,5 +180,24 @@ in
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
+  };
+
+  services.xserver.videoDrivers = [ "nvidia" ];
+  
+  hardware.graphics.enable = true;
+  
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = true;
+    powerManagement.finegrained = true;
+    open = false;
+  
+    prime = {
+      offload.enable = true;
+      offload.enableOffloadCmd = true;
+  
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:1:0:0";
+    };
   };
 }
