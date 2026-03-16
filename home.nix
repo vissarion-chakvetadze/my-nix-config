@@ -7,6 +7,7 @@ let
     export CLAUDE_CODE_TMPDIR="/tmp/claude-${name}"
 
     mkdir -p "$CLAUDE_CONFIG_DIR" "$CLAUDE_CODE_TMPDIR"
+    ln -sf "$HOME/.claude/ide" "$CLAUDE_CONFIG_DIR/ide"
 
     exec claude code "$@"
   '';
@@ -41,6 +42,8 @@ in
       };
 
       init.defaultBranch = "main";
+
+      url."git@github.com:".insteadOf = "https://github.com/";
     };
 
     includes = [

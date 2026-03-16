@@ -107,9 +107,6 @@ in
     git
     claude-code
     logseq
-    (unstable.ollama.override {
-      acceleration = "cuda";
-    })
   ]) ++
   ([
     #gemini-cli_026
@@ -152,6 +149,12 @@ in
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde ];
+  };
+
+  services.ollama = {
+    enable = true;
+    acceleration = "cuda";
+    package = unstable.ollama;
   };
 
   services.mediamtx = {
