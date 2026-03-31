@@ -99,6 +99,8 @@ slack
     mission-center #missioncenter
 
     intel-gpu-tools #intel_gpu_top
+
+    fastfetch
   ]) ++
   (with unstable; [
     protonvpn-gui
