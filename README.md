@@ -50,3 +50,12 @@ sudo nixos-rebuild build
 sudo nixos-rebuild test
 sudo nixos-rebuild switch
 ```
+
+## Post-install steps
+
+After a fresh install, run once:
+
+```bash
+# Activate direnv for work projects (security prompt — required by direnv)
+direnv allow ~/code/work
+```

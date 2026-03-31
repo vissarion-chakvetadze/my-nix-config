@@ -65,9 +65,7 @@ in
     lon
     pavucontrol
     pulseaudio
-    easyeffects
-
-    slack
+slack
     vscode
     nodejs_20
     docker
@@ -134,7 +132,7 @@ in
   ];
 
   boot.kernelParams = [
-    "snd-intel-dspcfg.dsp_driver=0"
+    "snd-intel-dspcfg.dsp_driver=3"
   ];
 
   services.xserver.xkb = {
@@ -177,7 +175,17 @@ in
   boot.kernelModules = [ "v4l2loopback" ];
   boot.extraModprobeConfig = ''
     options v4l2loopback devices=1 video_nr=10 card_label="Android Webcam" exclusive_caps=1
+    options snd-hda-intel patch=alc289-xps15.fw
+    options snd_sof_pci tplg_filename=sof-hda-generic-4ch.tplg
   '';
+
+  programs.nix-ld.enable = true;
+
+  # Starts ssh-agent at login so SSH keys are unlocked once per session.
+  # ksshaskpass provides a GUI passphrase prompt; SSH_ASKPASS_REQUIRE=prefer uses it over terminal.
+  programs.ssh.startAgent = true;
+  programs.ssh.askPassword = "${pkgs.kdePackages.ksshaskpass}/bin/ksshaskpass";
+  environment.sessionVariables.SSH_ASKPASS_REQUIRE = "prefer";
 
   services.avahi = {
     enable = true;
