@@ -1,6 +1,48 @@
-{ osConfig, pkgs, ... }:
+{ osConfig, pkgs, unstable, ... }:
 
 let
+  nixvimLib = import (builtins.fetchTarball {
+    url = "https://github.com/nix-community/nixvim/archive/main.tar.gz";
+  });
+
+  nvim = nixvimLib.legacyPackages.${pkgs.system}.makeNixvimWithModule {
+    pkgs = unstable;
+    module = {
+      opts = {
+        number = true;
+        relativenumber = true;
+        tabstop = 2;
+        shiftwidth = 2;
+        expandtab = true;
+      };
+
+      plugins = {
+        telescope.enable = true;
+        treesitter = {
+          enable = true;
+          settings.highlight.enable = true;
+        };
+        neo-tree.enable = true;
+        web-devicons.enable = true;
+        which-key.enable = true;
+        lualine.enable = true;
+        lsp = {
+          enable = true;
+          servers = {
+            ts_ls.enable = true;
+            nixd.enable = true;
+          };
+        };
+      };
+
+      keymaps = [
+        { key = "<leader>ff"; action = "<cmd>Telescope find_files<cr>"; }
+        { key = "<leader>fg"; action = "<cmd>Telescope live_grep<cr>"; }
+        { key = "<leader>e";  action = "<cmd>Neotree toggle<cr>"; }
+      ];
+    };
+  };
+
   claudeBin = "/run/current-system/sw/bin/claude";
 
   mkClaudeWrapper = name: pkgs.writeShellScriptBin "claude-${name}" ''
@@ -97,5 +139,5 @@ in
     export CLAUDE_CONFIG_DIR=~/claude-work-home/.claude
   '';
 
-  home.packages = [ claudeAuto ] ++ map mkClaudeWrapper [ "work" "personal" ];
+  home.packages = [ claudeAuto nvim ] ++ map mkClaudeWrapper [ "work" "personal" ];
 }
