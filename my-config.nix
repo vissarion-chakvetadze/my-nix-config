@@ -65,7 +65,7 @@ in
     lon
     pavucontrol
     pulseaudio
-slack
+    slack
     vscode
     nodejs_20
     docker
@@ -101,6 +101,8 @@ slack
     intel-gpu-tools #intel_gpu_top
 
     fastfetch
+
+    ghostty
   ]) ++
   (with unstable; [
     protonvpn-gui
@@ -134,7 +136,7 @@ slack
   ];
 
   boot.kernelParams = [
-    "snd-intel-dspcfg.dsp_driver=3"
+    "snd-intel-dspcfg.dsp_driver=1"
   ];
 
   services.xserver.xkb = {
@@ -178,8 +180,11 @@ slack
   boot.extraModprobeConfig = ''
     options v4l2loopback devices=1 video_nr=10 card_label="Android Webcam" exclusive_caps=1
     options snd-hda-intel patch=alc289-xps15.fw
-    options snd_sof_pci tplg_filename=sof-hda-generic-4ch.tplg
   '';
+
+  programs.zsh.enable = true;
+
+  users.users.${config.myProfile.username}.shell = pkgs.zsh;
 
   programs.nix-ld.enable = true;
 
@@ -213,4 +218,8 @@ slack
       nvidiaBusId = "PCI:1:0:0";
     };
   };
+
+  systemd.tmpfiles.rules = [
+    "d /var/lib/nvidia 0700 root root -"
+  ];
 }

@@ -33,6 +33,16 @@ in
 
   programs.bash.enable = true;
 
+  programs.zsh = {
+    enable = true;
+    syntaxHighlighting.enable = true;
+    oh-my-zsh = {
+      enable = true;
+      theme = "robbyrussell";
+      plugins = [ "git" ];
+    };
+  };
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
