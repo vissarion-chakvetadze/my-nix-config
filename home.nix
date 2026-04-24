@@ -14,23 +14,41 @@ let
         tabstop = 2;
         shiftwidth = 2;
         expandtab = true;
+        autoread = true;
+        mousescroll = "ver:1,hor:1";
+      };
+
+
+      colorschemes.catppuccin = {
+        enable = true;
+        settings.flavour = "mocha";
       };
 
       plugins = {
         telescope.enable = true;
         treesitter = {
           enable = true;
-          settings.highlight.enable = true;
+          settings = {
+            highlight.enable = true;
+            ensure_installed = [ "javascript" "typescript" "tsx" "css" "html" "json" ];
+          };
         };
-        neo-tree.enable = true;
+        neo-tree = {
+          enable = true;
+          settings.filesystem.use_libuv_file_watcher = true;
+        };
         web-devicons.enable = true;
         which-key.enable = true;
         lualine.enable = true;
+        trouble.enable = true;
+        gitsigns.enable = true;
         lsp = {
           enable = true;
           servers = {
             ts_ls.enable = true;
             nixd.enable = true;
+            eslint.enable = true;
+            biome.enable = true;
           };
         };
       };
@@ -39,9 +57,99 @@ let
         { key = "<leader>ff"; action = "<cmd>Telescope find_files<cr>"; }
         { key = "<leader>fg"; action = "<cmd>Telescope live_grep<cr>"; }
         { key = "<leader>e";  action = "<cmd>Neotree toggle<cr>"; }
+        { key = "<leader>xx"; action = "<cmd>Trouble diagnostics toggle<cr>"; }
       ];
+
+      extraConfigLua = ''
+        -- Check for external file changes every second (VSCode-like behavior)
+        vim.fn.timer_start(1000, function()
+          vim.cmd("silent! checktime")
+        end, { ["repeat"] = -1 })
+
+        -- Nicer diagnostic signs and inline messages
+        vim.diagnostic.config({
+          virtual_text = { prefix = "●" },
+          signs = {
+            text = {
+              [vim.diagnostic.severity.ERROR] = "✗",
+              [vim.diagnostic.severity.WARN]  = "⚠",
+              [vim.diagnostic.severity.INFO]  = "ℹ",
+              [vim.diagnostic.severity.HINT]  = "○",
+            },
+          },
+          underline = true,
+          severity_sort = true,
+        })
+      '';
     };
   };
+
+  dshScript = pkgs.writeShellScriptBin "dsh" ''
+    if [ ! -f ".devcontainer/devcontainer.json" ] && [ ! -f "devcontainer.json" ]; then
+      echo "No devcontainer config found in current directory"
+      exit 1
+    fi
+    exec devcontainer exec --workspace-folder . sh -c 'which zsh && exec zsh || exec bash'
+  '';
+
+  devScript = pkgs.writeShellScriptBin "dev" ''
+    set -e
+    SESSION=$(basename "$PWD")
+    REBUILD=""
+    NO_CACHE=""
+    for arg in "$@"; do
+      case "$arg" in
+        --rebuild) REBUILD="--remove-existing-container" ;;
+        --no-cache) NO_CACHE="--build-no-cache" ;;
+      esac
+    done
+
+    # Attach to existing session if already running (skip if rebuilding)
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+      if [ -z "$REBUILD" ]; then
+        tmux attach-session -t "$SESSION"
+        exit 0
+      else
+        tmux kill-session -t "$SESSION"
+      fi
+    fi
+
+    tmux new-session -d -s "$SESSION"
+
+    # Left pane: neovim
+    tmux send-keys -t "$SESSION" "nvim ." Enter
+
+    # Right pane: claude — inside container if devcontainer config exists, otherwise on host
+    tmux split-window -h -t "$SESSION"
+    if [ -f ".devcontainer/devcontainer.json" ] || [ -f "devcontainer.json" ]; then
+      # Auto-rebuild if devcontainer config files have changed since last run
+      HASH_FILE="/tmp/devcontainer-hash-$SESSION"
+      CURRENT_HASH=$(cat \
+        devcontainer.json \
+        .devcontainer/devcontainer.json \
+        .devcontainer/Dockerfile \
+        .devcontainer/docker-compose.yml \
+        docker-compose.yml \
+        2>/dev/null | sha256sum | cut -d' ' -f1)
+      STORED_HASH=$(cat "$HASH_FILE" 2>/dev/null || echo "")
+      if [ "$CURRENT_HASH" != "$STORED_HASH" ]; then
+        echo "Devcontainer config changed, rebuilding..."
+        REBUILD="--remove-existing-container"
+      fi
+
+      echo "Starting devcontainer..."
+      devcontainer up $REBUILD $NO_CACHE --workspace-folder .
+      echo "$CURRENT_HASH" > "$HASH_FILE"
+      tmux send-keys -t "$SESSION" "devcontainer exec --workspace-folder . claude" Enter
+    else
+      tmux send-keys -t "$SESSION" "claude" Enter
+    fi
+
+    # Focus neovim
+    tmux select-pane -t "$SESSION:0.0"
+
+    tmux attach-session -t "$SESSION"
+  '';
 
   claudeBin = "/run/current-system/sw/bin/claude";
 
@@ -139,5 +247,15 @@ in
     export CLAUDE_CONFIG_DIR=~/claude-work-home/.claude
   '';
 
-  home.packages = [ claudeAuto nvim ] ++ map mkClaudeWrapper [ "work" "personal" ];
+  programs.tmux = {
+    enable = true;
+    mouse = true;
+    extraConfig = ''
+      set -g @scroll-speed-num-lines-per-scroll "1"
+      run-shell ${pkgs.tmuxPlugins.better-mouse-mode}/share/tmux-plugins/better-mouse-mode/scroll_copy_mode.tmux
+    '';
+  };
+  programs.lazygit.enable = true;
+
+  home.packages = [ claudeAuto nvim devScript dshScript pkgs.lazydocker pkgs.devcontainer ] ++ map mkClaudeWrapper [ "work" "personal" ];
 }
