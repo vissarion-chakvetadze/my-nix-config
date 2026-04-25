@@ -4,12 +4,21 @@ let
   lanzaboote = import sources.lanzaboote {
     inherit pkgs;
   };
-  unstable = import (fetchTarball {
+  unstable = (import (fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz";
   }) {
     system = pkgs.stdenv.hostPlatform.system;
     config = config.nixpkgs.config;
-  };
+  }).extend (_: prev: {
+    vimUtils = prev.vimUtils // {
+      packDir = packages:
+        let addPname = p: if p ? pname then p else p // { pname = p.name; };
+        in prev.vimUtils.packDir (builtins.mapAttrs (_: pkg: {
+          start = map addPname (pkg.start or []);
+          opt = map addPname (pkg.opt or []);
+        }) packages);
+    };
+  });
   gemini-cli_026 = unstable.gemini-cli.overrideAttrs (old: let
     src = old.src.override {
       tag = "v0.27.3";
